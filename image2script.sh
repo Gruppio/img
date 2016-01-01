@@ -1,18 +1,25 @@
 #!/bin/bash
 
+imageFile=$1
 outputFile="out.sh"
-heightWidthRatio=2
 yOld=0
 colorCodeOld=-1
 width=100
-height=50
+height=55
 
+imageSize=$(convert $imageFile -format "%w %h" info: | tr -cs '0-9.\n'  ' ')
+read -r imageWidth imageHeight <<< "$imageSize"
+
+imageWidthHeightRatio=$(echo "$imageWidth/$imageHeight" | bc -l)
+echo "$imageWidthHeightRatio"
+#if (( $(echo "$num1 > $num2" |bc -l) )); then
+#echo "($RESULT+0.5)/1" | bc 
 
 echo "Creating Script..."
 
 printf "printf \"" > ${outputFile}
 
-convert $1 -resize ${width}x${height}\! -depth 8 -colorspace RGB +matte txt:- |
+convert $imageFile -resize ${width}x${height}\! -depth 8 -colorspace RGB +matte txt:- |
     tail -n +2 | tr -cs '0-9.\n'  ' ' |
       while read x y r g b junk; do
 
@@ -20,13 +27,13 @@ convert $1 -resize ${width}x${height}\! -depth 8 -colorspace RGB +matte txt:- |
       	then 
       		printf "\033[0m\n" >> ${outputFile}
       		yOld=$y
-            colorCodeOld=-1
+          colorCodeOld=-1
       	fi
 
       	r=$(($r/51))
-		g=$(($g/51))
-		b=$(($b/51))
-		colorCode=$((16 + (36 * $r) + (6 * $g) + $b))
+		    g=$(($g/51))
+		    b=$(($b/51))
+		    colorCode=$((16 + (36 * $r) + (6 * $g) + $b))
 
         if [[ $colorCode == $colorCodeOld ]]
         then
