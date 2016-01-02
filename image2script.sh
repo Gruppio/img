@@ -2,24 +2,50 @@
 
 imageFile=$1
 outputFile="out.sh"
+terminalWidth=$(tput cols)
+terminalHeight=$(tput lines)
+outputWidth=$terminalWidth
+outputHeight=$((terminalHeight / 2))
+#characterWidthHeightRatio=0.5
+
 yOld=0
 colorCodeOld=-1
-width=100
-height=55
 
+# Read Image width ang Image Height
 imageSize=$(convert $imageFile -format "%w %h" info: | tr -cs '0-9.\n'  ' ')
 read -r imageWidth imageHeight <<< "$imageSize"
 
-imageWidthHeightRatio=$(echo "$imageWidth/$imageHeight" | bc -l)
-echo "$imageWidthHeightRatio"
+widthRatio=$(echo "$imageWidth/$outputWidth" | bc -l)
+heightRatio=$(echo "$imageHeight/$outputHeight" | bc -l)
+
+resizeOption=""
+
+if (( $(echo "$heightRatio > $widthRatio" |bc -l) ))
+then
+  height=$outputHeight
+  widthFloat=$(echo "$height * $widthRatio" | bc -l)
+  width=
+  resizeOption="-resize x${outputHeight}"
+else
+  resizeOption="-resize ${outputWidth}"
+fi
+
+echo "$resizeOption"
+
+#echo "W: $widthRatio, h: $heightRatio"
+
 #if (( $(echo "$num1 > $num2" |bc -l) )); then
 #echo "($RESULT+0.5)/1" | bc 
+
+
+# -resize ${width}x${height}\!
+
 
 echo "Creating Script..."
 
 printf "printf \"" > ${outputFile}
 
-convert $imageFile -resize ${width}x${height}\! -depth 8 -colorspace RGB +matte txt:- |
+convert $imageFile ${resizeOption} -depth 8 -colorspace RGB +matte txt:- |
     tail -n +2 | tr -cs '0-9.\n'  ' ' |
       while read x y r g b junk; do
 
