@@ -15,20 +15,26 @@ colorCodeOld=-1
 imageSize=$(convert $imageFile -format "%w %h" info: | tr -cs '0-9.\n'  ' ')
 read -r imageWidth imageHeight <<< "$imageSize"
 
-widthRatio=$(echo "$imageWidth/$outputWidth" | bc -l)
-heightRatio=$(echo "$imageHeight/$outputHeight" | bc -l)
+#imageWidthHeightRatio=$(echo "$imageWidth/$imageHeight" | bc -l)
 
 resizeOption=""
 
-if (( $(echo "$heightRatio > $widthRatio" |bc -l) ))
-then
-  height=$outputHeight
-  widthFloat=$(echo "$height * $widthRatio" | bc -l)
-  width=
-  resizeOption="-resize x${outputHeight}"
-else
-  resizeOption="-resize ${outputWidth}"
-fi
+# Resize by adapting the ImageWidth to OutputWidth
+widthScaleRatio=$(echo "$outputWidth/$imageWidth" | bc -l)
+heightFloat=$(echo "imageHeight * $widthScaleRatio" | bc -l)
+height=$(echo "($heightFloat+0.5)/1" | bc -l)
+
+echo "$height"
+
+#if (( $width > $height ))
+#then
+#  height=$outputHeight
+#  widthFloat=$(echo "$height * $widthRatio" | bc -l)
+#  width=
+#  resizeOption="-resize x${outputHeight}"
+#else
+#  resizeOption="-resize ${outputWidth}"
+#fi
 
 echo "$resizeOption"
 
