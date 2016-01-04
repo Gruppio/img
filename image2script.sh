@@ -6,7 +6,7 @@ terminalWidth=$(tput cols)
 terminalHeight=$(tput lines)
 outputWidth=$terminalWidth
 outputHeight=$((terminalHeight / 2))
-#characterWidthHeightRatio=0.5
+characterWidthHeightRatio=0.5
 
 yOld=0
 colorCodeOld=-1
@@ -15,37 +15,14 @@ colorCodeOld=-1
 imageSize=$(convert $imageFile -format "%w %h" info: | tr -cs '0-9.\n'  ' ')
 read -r imageWidth imageHeight <<< "$imageSize"
 
-#imageWidthHeightRatio=$(echo "$imageWidth/$imageHeight" | bc -l)
-
 resizeOption=""
 
 # Resize by adapting the ImageWidth to OutputWidth
 widthScaleRatio=$(echo "$outputWidth/$imageWidth" | bc -l)
-heightFloat=$(echo "imageHeight * $widthScaleRatio" | bc -l)
-height=$(echo "($heightFloat+0.5)/1" | bc -l)
-
-echo "$height"
-
-#if (( $width > $height ))
-#then
-#  height=$outputHeight
-#  widthFloat=$(echo "$height * $widthRatio" | bc -l)
-#  width=
-#  resizeOption="-resize x${outputHeight}"
-#else
-#  resizeOption="-resize ${outputWidth}"
-#fi
-
-echo "$resizeOption"
-
-#echo "W: $widthRatio, h: $heightRatio"
-
-#if (( $(echo "$num1 > $num2" |bc -l) )); then
-#echo "($RESULT+0.5)/1" | bc 
-
-
-# -resize ${width}x${height}\!
-
+heightFloat=$(echo "$imageHeight*$widthScaleRatio*$characterWidthHeightRatio" | bc -l)
+height=$(echo "($heightFloat+0.5)/1" | bc)
+width=$outputWidth
+resizeOption="-resize ${width}x${height}!"
 
 echo "Creating Script..."
 
