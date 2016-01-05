@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 function imageToCommand
 {
   imageFile=$1
@@ -46,13 +47,15 @@ outputWidth=-1
 outputHeight=-1
 characterWidthHeightRatio=50
 characterFormCorrectionEnabled=1
-verbose=1
+terminalResizeEnabled=1
+verbose=0
 resizeOption=""
 sampleOption=""
 
 while (( "$#" ))
 do
   case $1 in
+
     --help)  
       echo "Help"
       exit 0
@@ -73,8 +76,16 @@ do
       shift 
     ;;
 
+    -v|--verbose)
+      verbose=1
+    ;;
+
     --disable-character-form-correction)
       characterFormCorrectionEnabled=0
+    ;;
+
+    --disable-auto-terminal-resize)
+      terminalResizeEnabled=0
     ;;
 
     *) imageFile=$1 ;;
@@ -91,7 +102,10 @@ fi
 
 # Main
 
-echo "Creating Script..."
+if [[ $verbose == 1 ]]
+then
+  echo "Creating Terminal Image..."
+fi
 
 # Read Image width ang Image Height
 imageSize=$(convert $imageFile -format "%w %h" info: | tr -cs '0-9.\n'  ' ')
@@ -118,28 +132,35 @@ then
   sampleOption="-sample 100x${characterWidthHeightRatio}%!"
 fi
 
-# Resize the r
-#printf '\e[8;50;100t' 
+drawImageCommand=""
 
-drawImageCommand=$(imageToCommand "${imageFile}" "${resizeOption}" "${sampleOption}")
+if [[ $terminalResizeEnabled == 1 ]]
+then
+  terminalWidth=$(tput cols)
+  terminalHeight=$(tput lines)
+
+  if [[ $outputWidth != -1 ]]
+  then
+    terminalWidth=$outputWidth
+  fi
+
+  if [[ $outputHeight != -1 ]]
+  then
+    terminalHeight=$outputHeight
+  fi
+
+  drawImageCommand="\033[8;${terminalHeight};${terminalWidth}t"
+fi
+
+drawImageCommand+=$(imageToCommand "${imageFile}" "${resizeOption}" "${sampleOption}")
 
 if [[ $outputFile != "" ]]
 then
-  printf "${drawImageCommand}" >> ${outputFile}
+  printf "clear\n printf \"${drawImageCommand}\"" >> ${outputFile}
 else
+  clear
   printf "${drawImageCommand}"
 fi
-
-
-
-#printf "printf \"" > ${outputFile}
-
-  
-  #printf "$drawImageCommand" > aaa.txt
-
-echo "Done"
-
-
 
 exit 0
 
