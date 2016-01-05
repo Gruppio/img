@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Michele Gruppioni 2016
 
 function imageToCommand
 {
@@ -10,7 +11,7 @@ function imageToCommand
   yOld=0
   colorCodeOld=-1
 
-  convert $imageFile ${resizeOption} ${sampleOption} -depth 8 -colorspace RGB +matte txt:- |
+  convert ${imageFile} ${resizeOption} ${sampleOption} -depth 8 -colorspace RGB +matte txt:- |
     tail -n +2 | tr -cs '0-9.\n'  ' ' |
       while read x y r g b junk; do
 
@@ -40,6 +41,17 @@ function imageToCommand
   printf "\033[0m\n"
 }
 
+function isAGif
+{
+  fileLowercase=$(echo "$1" | awk '{print tolower($0)}')
+  if [[ $fileLowercase == *.gif ]]
+  then
+    echo 1
+  else
+    echo 0
+  fi
+}
+
 
 imageFile=""
 outputFile=""
@@ -51,6 +63,10 @@ terminalResizeEnabled=1
 verbose=0
 resizeOption=""
 sampleOption=""
+
+terminalWidth=$(tput cols)
+terminalHeight=$(tput lines)
+terminalDoubleHeight=$(($terminalHeight*2))
 
 while (( "$#" ))
 do
@@ -72,7 +88,7 @@ do
     ;;
 
     -h|--height)     
-      outputHeight=$2
+      outputHeight=$(($2*2))
       shift 
     ;;
 
@@ -114,8 +130,19 @@ read -r imageWidth imageHeight <<< "$imageSize"
 # Resize the image to desired size if specified otherwise by adapting the ImageWidth to OutputWidth
 if [[ $outputWidth == -1 && $outputHeight == -1 ]]
 then 
-  outputWidth=$(tput cols) # Terminal Width
-  resizeOption="-resize ${outputWidth}"
+
+  imageRectRatio=$(echo "$imageWidth/$imageHeight" | bc -l)
+  terminalRectRatio=$(echo "$terminalWidth/$terminalDoubleHeight" | bc -l)
+  #echo "$imageRectRatio - $terminalRectRatio"
+  if (( $(echo $imageRectRatio'>'$terminalRectRatio | bc -l) ))
+  then 
+    outputWidth=$terminalWidth
+    resizeOption="-resize ${outputWidth}"
+  else
+    outputHeight=$(($terminalDoubleHeight))
+    resizeOption="-resize x${outputHeight}"
+  fi
+  
 elif [[ $outputWidth != -1 && $outputHeight == -1 ]]
 then
   resizeOption="-resize ${outputWidth}"
@@ -132,13 +159,15 @@ then
   sampleOption="-sample 100x${characterWidthHeightRatio}%!"
 fi
 
-drawImageCommand=""
+# If the ouptut is to a file create it
+if [[ $outputFile != "" ]]
+then
+  printf "" > ${outputFile}
+fi
 
+resizeTerminalCommand=""
 if [[ $terminalResizeEnabled == 1 ]]
 then
-  terminalWidth=$(tput cols)
-  terminalHeight=$(tput lines)
-
   if [[ $outputWidth != -1 ]]
   then
     terminalWidth=$outputWidth
@@ -149,17 +178,48 @@ then
     terminalHeight=$outputHeight
   fi
 
-  drawImageCommand="\033[8;${terminalHeight};${terminalWidth}t"
+  resizeTerminalCommand="\033[8;${terminalHeight};${terminalWidth}t"
 fi
 
+drawImageCommand=""
 drawImageCommand+=$(imageToCommand "${imageFile}" "${resizeOption}" "${sampleOption}")
 
 if [[ $outputFile != "" ]]
 then
-  printf "clear\n printf \"${drawImageCommand}\"" >> ${outputFile}
+  printf "clear\n printf \"${drawImageCommand}\"" > ${outputFile}
 else
   clear
   printf "${drawImageCommand}"
+fi
+
+# If is a gif print all the frames
+isGif=$(isAGif $imageFile)
+if [[ $isGif == 1 ]]
+then
+  mkdir frames
+  convert ${imageFile} -coalesce frames/frame_%d.jpg
+  rm frames/frame_0.jpg
+  framesCount=$(convert ${imageFile} -format "%n" info:| tail -n 1)
+  for (( i=1; i<$framesCount; i++ ))
+  do
+    if [[ $verbose == 1 ]]
+    then
+      echo "Analyizing frame ${i}/${framesCount}"
+    fi
+
+    frame="frames/frame_${i}.jpg"
+    drawImageCommand=$(imageToCommand "${frame}" "${resizeOption}" "${sampleOption}")
+    rm "frames/frame_${i}.jpg"
+    if [[ $outputFile != "" ]]
+    then
+      printf "\nsleep 0.2\nclear\n printf \"${drawImageCommand}\"" >> ${outputFile}
+    else
+      clear
+      printf "${drawImageCommand}"
+    fi
+
+  done
+  rmdir frames
 fi
 
 exit 0
