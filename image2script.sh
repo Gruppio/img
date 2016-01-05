@@ -1,12 +1,51 @@
 #!/bin/bash
+
+function imageToCommand
+{
+  imageFile=$1
+  resizeOption=$2
+  sampleOption=$3
+
+  yOld=0
+  colorCodeOld=-1
+
+  convert $imageFile ${resizeOption} ${sampleOption} -depth 8 -colorspace RGB +matte txt:- |
+    tail -n +2 | tr -cs '0-9.\n'  ' ' |
+      while read x y r g b junk; do
+
+        if [[ $y != $yOld ]]
+        then 
+          printf "\033[0m\n"
+          yOld=$y
+          colorCodeOld=-1
+        fi
+
+        r=$(($r/51))
+        g=$(($g/51))
+        b=$(($b/51))
+        colorCode=$((16 + (36 * $r) + (6 * $g) + $b))
+
+        if [[ $colorCode == $colorCodeOld ]]
+        then
+            printf " "
+        else
+            printf "\033[48;5;${colorCode}m "
+        fi
+
+        colorCodeOld=$colorCode
+        #echo "$x,$y = rgb($r,$g,$b)"
+      done
+
+  printf "\033[0m\n"
+}
+
+
 imageFile=""
-outputFile="out.sh"
+outputFile=""
 outputWidth=-1
 outputHeight=-1
 characterWidthHeightRatio=50
 characterFormCorrectionEnabled=1
-yOld=0
-colorCodeOld=-1
 verbose=1
 resizeOption=""
 sampleOption=""
@@ -79,41 +118,29 @@ then
   sampleOption="-sample 100x${characterWidthHeightRatio}%!"
 fi
 
-# Resize the terminal
+# Resize the r
 #printf '\e[8;50;100t' 
 
-drawImageCommand="printf \""
+drawImageCommand=$(imageToCommand "${imageFile}" "${resizeOption}" "${sampleOption}")
 
-printf "printf \"" > ${outputFile}
+if [[ $outputFile != "" ]]
+then
+  printf "${drawImageCommand}" >> ${outputFile}
+else
+  printf "${drawImageCommand}"
+fi
 
-convert $imageFile ${resizeOption} ${sampleOption} -depth 8 -colorspace RGB +matte txt:- |
-    tail -n +2 | tr -cs '0-9.\n'  ' ' |
-      while read x y r g b junk; do
 
-      	if [[ $y != $yOld ]]
-      	then 
-      		printf "\033[0m\n" >> ${outputFile}
-      		yOld=$y
-          colorCodeOld=-1
-      	fi
 
-      	r=$(($r/51))
-		    g=$(($g/51))
-		    b=$(($b/51))
-		    colorCode=$((16 + (36 * $r) + (6 * $g) + $b))
+#printf "printf \"" > ${outputFile}
 
-        if [[ $colorCode == $colorCodeOld ]]
-        then
-            printf " " >> ${outputFile}
-        else
-            printf "\033[48;5;${colorCode}m " >> ${outputFile}
-        fi
+  
+  #printf "$drawImageCommand" > aaa.txt
 
-        colorCodeOld=$colorCode
-        #echo "$x,$y = rgb($r,$g,$b)"
-      done
+echo "Done"
 
-printf "\033[0m\n\"" >> ${outputFile}
 
 
 exit 0
+
+
