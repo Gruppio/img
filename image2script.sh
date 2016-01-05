@@ -1,20 +1,20 @@
 #!/bin/bash
 imageFile=""
 outputFile="out.sh"
-terminalWidth=$(tput cols)
-terminalHeight=$(tput lines)
 outputWidth=-1
 outputHeight=-1
-characterWidthHeightRatio=0.5
-
+characterWidthHeightRatio=50
+characterFormCorrectionEnabled=1
 yOld=0
 colorCodeOld=-1
+verbose=1
 resizeOption=""
+sampleOption=""
 
 while (( "$#" ))
 do
   case $1 in
-    -h|--help)  
+    --help)  
       echo "Help"
       exit 0
     ;;
@@ -32,6 +32,10 @@ do
     -h|--height)     
       outputHeight=$2
       shift 
+    ;;
+
+    --disable-character-form-correction)
+      characterFormCorrectionEnabled=0
     ;;
 
     *) imageFile=$1 ;;
@@ -54,28 +58,35 @@ echo "Creating Script..."
 imageSize=$(convert $imageFile -format "%w %h" info: | tr -cs '0-9.\n'  ' ')
 read -r imageWidth imageHeight <<< "$imageSize"
 
-# Resize the image to desired size if specified
-
-# Resize by adapting the ImageWidth to OutputWidth
+# Resize the image to desired size if specified otherwise by adapting the ImageWidth to OutputWidth
 if [[ $outputWidth == -1 && $outputHeight == -1 ]]
 then 
-  widthScaleRatio=$(echo "$outputWidth/$imageWidth" | bc -l)
-  heightFloat=$(echo "$imageHeight*$widthScaleRatio*$characterWidthHeightRatio" | bc -l)
-  outputHeight=$(echo "($heightFloat+0.5)/1" | bc)
-  resizeOption="-resize ${outputWidth}x${outputHeight}!"
-elif [[ $outputWidth == -1 ]]
-then
-  resizeOption="-resize x${outputHeight}"
-elif [[ $outputHeight == -1 ]]
+  outputWidth=$(tput cols) # Terminal Width
+  resizeOption="-resize ${outputWidth}"
+elif [[ $outputWidth != -1 && $outputHeight == -1 ]]
 then
   resizeOption="-resize ${outputWidth}"
+elif [[ $outputWidth == -1 && $outputHeight != -1 ]]
+then
+  resizeOption="-resize x${outputHeight}"
 else
   resizeOption="-resize ${outputWidth}x${outputHeight}!"
 fi
 
+
+if [[ $characterFormCorrectionEnabled == 1 ]]
+then 
+  sampleOption="-sample 100x${characterWidthHeightRatio}%!"
+fi
+
+# Resize the terminal
+#printf '\e[8;50;100t' 
+
+drawImageCommand="printf \""
+
 printf "printf \"" > ${outputFile}
 
-convert $imageFile ${resizeOption} -sample 100x50%\! -depth 8 -colorspace RGB +matte txt:- |
+convert $imageFile ${resizeOption} ${sampleOption} -depth 8 -colorspace RGB +matte txt:- |
     tail -n +2 | tr -cs '0-9.\n'  ' ' |
       while read x y r g b junk; do
 
