@@ -200,7 +200,7 @@ then
 
   if [[ $outputFile != "" ]]
   then
-    printf "printf \"${resizeTerminalCommand}\"" >> ${outputFile}
+    printf "terminalWidth=\$(tput cols)\nterminalHeight=\$(tput lines)\nprintf \"${resizeTerminalCommand}\"" >> ${outputFile}
   else
     printf "${resizeTerminalCommand}"
   fi
@@ -235,7 +235,7 @@ then
     fi
   done
   rmdir ${framesFolder}
-  
+
 else
 
   drawImageCommand=$(imageToCommand "${imageFile}" "${resizeOption}" "${sampleOption}")
@@ -248,6 +248,16 @@ else
     printf "${drawImageCommand}"
   fi
 
+fi
+
+# Restore the terminal window size if needed
+if [[ $terminalResizeEnabled == 1 ]]
+then
+  if [[ $outputFile != "" ]]
+  then
+    restoreTerminalCommand="\033[8;\${terminalHeight};\${terminalWidth}t"
+    printf "\nprintf \"${restoreTerminalCommand}\"" >> ${outputFile}
+  fi
 fi
 
 exit 0

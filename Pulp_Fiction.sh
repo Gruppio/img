@@ -1,3 +1,5 @@
+terminalWidth=$(tput cols)
+terminalHeight=$(tput lines)
 printf "[8;63;80t"
 sleep 0.2
 clear
@@ -563,3 +565,4 @@ clear
 [48;5;16m                     [48;5;59m [48;5;16m                                                          [0m
 [48;5;16m              [48;5;59m [48;5;102m [48;5;16m           [48;5;59m [48;5;16m                          [48;5;59m [48;5;188m [48;5;102m [48;5;145m       [48;5;102m [48;5;188m [48;5;16m              [0m
 [48;5;16m                     [48;5;59m [48;5;16m      [48;5;59m [48;5;16m                                                   [0m"
+printf "[8;${terminalHeight};${terminalWidth}t"
