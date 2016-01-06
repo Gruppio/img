@@ -183,7 +183,7 @@ then
   printf "" > ${outputFile}
 fi
 
-resizeTerminalCommand=""
+# Resize the terminal window size if needed
 if [[ $terminalResizeEnabled == 1 ]]
 then
   if [[ $outputWidth != -1 ]]
@@ -197,47 +197,57 @@ then
   fi
 
   resizeTerminalCommand="\033[8;${terminalHeight};${terminalWidth}t"
+
+  if [[ $outputFile != "" ]]
+  then
+    printf "printf \"${resizeTerminalCommand}\"" >> ${outputFile}
+  else
+    printf "${resizeTerminalCommand}"
+  fi
 fi
 
-drawImageCommand=""
-drawImageCommand+=$(imageToCommand "${imageFile}" "${resizeOption}" "${sampleOption}")
-
-if [[ $outputFile != "" ]]
-then
-  printf "clear\n printf \"${drawImageCommand}\"" > ${outputFile}
-else
-  clear
-  printf "${drawImageCommand}"
-fi
 
 # If is a gif print all the frames
 isGif=$(isAGif $imageFile)
 if [[ $isGif == 1 ]]
 then
-  mkdir frames
-  convert ${imageFile} -coalesce frames/frame_%d.jpg
-  rm frames/frame_0.jpg
+
+  mkdir ${framesFolder}
+  convert ${imageFile} -coalesce ${framesFolder}/${framesName}%d.jpg
   framesCount=$(convert ${imageFile} -format "%n" info:| tail -n 1)
-  for (( i=1; i<$framesCount; i++ ))
+  for (( i=0; i<$framesCount; i++ ))
   do
     if [[ $verbose == 1 ]]
     then
       echo "Analyizing frame ${i}/${framesCount}"
     fi
 
-    frame="frames/frame_${i}.jpg"
-    drawImageCommand=$(imageToCommand "${frame}" "${resizeOption}" "${sampleOption}")
-    rm "frames/frame_${i}.jpg"
+    frameFile="${framesFolder}/${framesName}${i}.jpg"
+    drawImageCommand=$(imageToCommand "${frameFile}" "${resizeOption}" "${sampleOption}")
+    rm ${frameFile}
+
     if [[ $outputFile != "" ]]
     then
-      printf "\nsleep 0.2\nclear\n printf \"${drawImageCommand}\"" >> ${outputFile}
+      printf "\nsleep ${delay}\nclear\n printf \"${drawImageCommand}\"" >> ${outputFile}
     else
       clear
       printf "${drawImageCommand}"
     fi
-
   done
-  rmdir frames
+  rmdir ${framesFolder}
+  
+else
+
+  drawImageCommand=$(imageToCommand "${imageFile}" "${resizeOption}" "${sampleOption}")
+
+  if [[ $outputFile != "" ]]
+  then
+    printf "clear\n printf \"${drawImageCommand}\"" >> ${outputFile}
+  else
+    clear
+    printf "${drawImageCommand}"
+  fi
+
 fi
 
 exit 0
