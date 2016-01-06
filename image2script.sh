@@ -35,7 +35,6 @@ function imageToCommand
         fi
 
         colorCodeOld=$colorCode
-        #echo "$x,$y = rgb($r,$g,$b)"
       done
 
   printf "\033[0m\n"
@@ -63,6 +62,11 @@ terminalResizeEnabled=1
 verbose=0
 resizeOption=""
 sampleOption=""
+delay=0.2
+loopForever=0
+loopTimes=1
+framesFolder="frames"
+framesName="frame_"
 
 terminalWidth=$(tput cols)
 terminalHeight=$(tput lines)
@@ -96,11 +100,25 @@ do
       verbose=1
     ;;
 
+    -d|--delay)
+      delay=$2
+      shift
+    ;;
+
+    -lf|--loop-forever)
+      loopForever=1
+    ;;
+
+    -ln|--loop-times)
+      loopTimes=$2
+      shift
+    ;;
+
     --disable-character-form-correction)
       characterFormCorrectionEnabled=0
     ;;
 
-    --disable-auto-terminal-resize)
+    --disable-terminal-resize)
       terminalResizeEnabled=0
     ;;
 
