@@ -40,17 +40,6 @@ function imageToCommand
   printf "\033[0m\n"
 }
 
-function isAGif
-{
-  fileLowercase=$(echo "$1" | awk '{print tolower($0)}')
-  if [[ $fileLowercase == *.gif ]]
-  then
-    echo 1
-  else
-    echo 0
-  fi
-}
-
 
 imageFile=""
 outputFile=""
@@ -81,7 +70,7 @@ do
       exit 0
     ;;
 
-    -o)             
+    -o|--output)             
       outputFile=$2
       shift 
     ;;
@@ -109,7 +98,7 @@ do
       loopForever=1
     ;;
 
-    -ln|--loop-times)
+    -lt|--loop-times)
       loopTimes=$2
       shift
     ;;
@@ -203,13 +192,23 @@ fi
 
 
 # If is a gif print all the frames
-isGif=$(isAGif $imageFile)
-if [[ $isGif == 1 ]]
+fileLowercase=$(echo "$imageFile" | awk '{print tolower($0)}')
+if [[ $fileLowercase == *.gif ]]
 then
 
   if [[ $verbose == 1 ]]
   then
     echo "Analyizing Gif frames..."
+  fi
+
+  if [[ $outputFile != "" ]]
+  then
+    if [[ $loopForever == 1 ]]
+    then
+      printf "\nwhile : \ndo" >> ${outputFile}
+    else
+      printf "\nfor (( i=0; i<${loopTimes}; i++ ))\ndo" >> ${outputFile}
+    fi
   fi
 
   mkdir ${framesFolder}
@@ -236,6 +235,11 @@ then
   done
   rmdir ${framesFolder}
 
+  if [[ $outputFile != "" ]]
+  then
+      printf "\ndone" >> ${outputFile}
+  fi
+
 else
 
   if [[ $verbose == 1 ]]
@@ -249,7 +253,7 @@ else
   then
     printf "clear\n printf \"${drawImageCommand}\"" >> ${outputFile}
   else
-    clear
+    #clear
     printf "${drawImageCommand}"
   fi
 
