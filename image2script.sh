@@ -114,11 +114,11 @@ do
       shift
     ;;
 
-    --disable-character-form-correction)
+    -ncfc|--no-character-form-correction)
       characterFormCorrectionEnabled=0
     ;;
 
-    --disable-terminal-resize)
+    -ntr|--no-terminal-resize)
       terminalResizeEnabled=0
     ;;
 
@@ -135,11 +135,6 @@ then
 fi
 
 # Main
-
-if [[ $verbose == 1 ]]
-then
-  echo "Creating Terminal Image..."
-fi
 
 # Read Image width ang Image Height
 imageSize=$(convert $imageFile -format "%w %h" info: | tr -cs '0-9.\n'  ' ')
@@ -212,6 +207,11 @@ isGif=$(isAGif $imageFile)
 if [[ $isGif == 1 ]]
 then
 
+  if [[ $verbose == 1 ]]
+  then
+    echo "Analyizing Gif frames..."
+  fi
+
   mkdir ${framesFolder}
   convert ${imageFile} -coalesce ${framesFolder}/${framesName}%d.jpg
   framesCount=$(convert ${imageFile} -format "%n" info:| tail -n 1)
@@ -237,6 +237,11 @@ then
   rmdir ${framesFolder}
 
 else
+
+  if [[ $verbose == 1 ]]
+  then
+    echo "Analyizing Image..."
+  fi
 
   drawImageCommand=$(imageToCommand "${imageFile}" "${resizeOption}" "${sampleOption}")
 
