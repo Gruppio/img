@@ -2,6 +2,61 @@
 
 # Michele Gruppioni 2016
 
+function usage
+{
+  cat <<EOF
+
+-------------------------------------
+ $0 HELP 
+-------------------------------------
+
+$0 Is a tool that allow to display images and gif files in a terminal window.
+A unique functionality of $0 is the possibility to export the result as a .sh script that can be run on any other compatible machine.
+The output script does not require any dependency or installation.
+This allow you to display an image or even an animation every time that you open the terminal or each time that someone ssh your server.
+
+$0 require ImageMagick [ http://www.imagemagick.org ] in order to work 
+For install ImageMagick on OSX:
+sudo port install ImageMagick
+or 
+sudo brew install ImageMagick
+
+For install ImageMagick on Ubuntu:
+sudo apt-get install imagemagick
+
+For install on other OS please check ImageMagick website [ http://www.imagemagick.org ]
+
+-------------------------------------
+
+Usage: $0 [options] <image/gif file>
+
+  --help                                Print the help
+
+  -o|--output <fileName>                Set the output script file name
+
+  -w|--width <width>                    Set the output image width
+
+  -h|--height <height>                  Set the output image height
+
+  -v|--verbose                          Verbose mode 
+  
+  -d|--delay <delay>                    Set the delay in seconds between .Gif frames (ex 0.1) 
+
+  -lf|--loop-forever                    The .Gif images will run forever ( works only with the -o option )
+  
+  -lt|--loop-times <times>              The .Gif images will run <times> times ( works only with the -o option )
+
+  -ncfc|--no-character-form-correction  The output image will not care about the different height/width of the characters form
+  
+  -ntr|--no-terminal-resize             The terminal window will not be resized to the image dimension
+
+-------------------------------------
+
+Michele Gruppioni 2016
+
+EOF
+}
+
 function imageToCommand
 {
   imageFile=$1
@@ -66,7 +121,7 @@ do
   case $1 in
 
     --help)  
-      echo "Help"
+      usage
       exit 0
     ;;
 
@@ -164,7 +219,8 @@ fi
 # If the ouptut is to a file create it
 if [[ $outputFile != "" ]]
 then
-  printf "" > ${outputFile}
+  touch ${outputFile}
+  chmod +x ${outputFile}
 fi
 
 # Resize the terminal window size if needed
