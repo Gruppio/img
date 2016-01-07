@@ -57,6 +57,96 @@ Michele Gruppioni 2016
 EOF
 }
 
+highResolutionEnabled=1
+function isHighResolutionEnabled
+{
+  lang=$(printenv LANG)
+  if [[ $highResolutionEnabled == 1 && lang == *"UTF-8"* ]]
+  then 
+    echo 1
+  else
+    echo 0
+  fi
+}
+
+#
+#function isUpperRow
+# {
+#  if [[ $(($1%2)) == 0 ]]
+#  then 
+#    echo 1
+#  else
+#    echo 0
+#  fi
+# }
+
+
+function imageToCommandHighRes
+{
+  imageFile=$1
+  resizeOption=$2
+
+  yOld=0
+  upperColorCodeOld=-1
+  lowerColorCodeOld=-1
+  isUpperRow=1
+
+  convert ${imageFile} ${resizeOption} -depth 8 -colorspace RGB +matte txt:- |
+    tail -n +2 | tr -cs '0-9.\n'  ' ' |
+      while read x y r g b junk; do
+
+        if [[ $y != $yOld ]]
+        then 
+          yOld=$y
+          upperColorCodeOld=-1
+          lowerColorCodeOld=-1
+          if [[ $isUpperRow == 1 ]]
+          then 
+            isUpperRow=0
+          else
+            isUpperRow=1
+            printf "\033[0m\n"
+          fi
+        fi
+
+        r=$(($r/51))
+        g=$(($g/51))
+        b=$(($b/51))
+        colorCode=$((16 + (36 * $r) + (6 * $g) + $b))
+
+        if [[ $isUpperRow == 1 ]]
+        then
+          upperColorCodes[${x}]=${colorCode}
+        else
+          upperColorCode=${upperColorCodes[${x}]}
+          lowerColorCode=${colorCode}
+
+          setForegroundColorCommand="\033[38;5;${upperColorCode}m"
+          setBackgroundColorCommand="\033[48;5;${lowerColorCode}m"
+
+          if [[ $upperColorCode != $upperColorCodeOld ]]
+          then
+            upperColorCodeOld=$upperColorCode
+            printf "${setForegroundColorCommand}"
+          fi
+
+          if [[ $lowerColorCode != $lowerColorCodeOld ]]
+          then
+            lowerColorCodeOld=$lowerColorCode
+            printf "${setBackgroundColorCommand}"
+          fi
+
+          if [[ ${upperColorCode} == ${lowerColorCode} ]]
+          then
+            printf "█"
+          else
+            printf "▀"
+          fi
+        fi
+      done
+  printf "\033[0m\n"
+}
+
 function imageToCommand
 {
   imageFile=$1
@@ -90,8 +180,8 @@ function imageToCommand
         fi
 
         colorCodeOld=$colorCode
-      done
 
+      done
   printf "\033[0m\n"
 }
 
@@ -115,6 +205,7 @@ framesName="frame_"
 terminalWidth=$(tput cols)
 terminalHeight=$(tput lines)
 terminalDoubleHeight=$(($terminalHeight*2))
+terminalHalfHeight=$(($terminalHeight/2))
 
 while (( "$#" ))
 do
@@ -196,7 +287,7 @@ then
     outputWidth=$terminalWidth
     resizeOption="-resize ${outputWidth}"
   else
-    outputHeight=$(($terminalDoubleHeight))
+    outputHeight=$terminalDoubleHeight
     resizeOption="-resize x${outputHeight}"
   fi
   
@@ -278,7 +369,8 @@ then
     fi
 
     frameFile="${framesFolder}/${framesName}${i}.jpg"
-    drawImageCommand=$(imageToCommand "${frameFile}" "${resizeOption}" "${sampleOption}")
+    #drawImageCommand=$(imageToCommand "${frameFile}" "${resizeOption}" "${sampleOption}")
+    drawImageCommand=$(imageToCommandHighRes "${frameFile}" "${resizeOption}")
     rm ${frameFile}
 
     if [[ $outputFile != "" ]]
@@ -303,7 +395,8 @@ else
     echo "Analyizing Image..."
   fi
 
-  drawImageCommand=$(imageToCommand "${imageFile}" "${resizeOption}" "${sampleOption}")
+  #drawImageCommand=$(imageToCommand "${imageFile}" "${resizeOption}" "${sampleOption}")
+  drawImageCommand=$(imageToCommandHighRes "${imageFile}" "${resizeOption}")
 
   if [[ $outputFile != "" ]]
   then
